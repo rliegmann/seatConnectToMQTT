@@ -25,4 +25,4 @@ jobs:
       run: docker build . --file Dockerfile --target prod --tag seatconnecttomqtt:latest
 
     - name: Docker Push
-      run: docker push ${{secrets.DOCKER_USER}}/seatconnecttomqtt
+      run: docker push ${{secrets.DOCKER_USER}}/seatconnecttomqtt:latest
