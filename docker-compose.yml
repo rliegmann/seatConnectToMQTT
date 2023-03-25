@@ -1,0 +1,7 @@
+version: '3.4'
+
+services:
+  seatconnecttomqtt:
+    image: seatconnecttomqtt:latest
+    env_file:
+      - settings.env
