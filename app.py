@@ -220,8 +220,9 @@ async def runSeatConnect():
             print(f'{instrument.full_name} - {instrument.str_state} - attributes: {instrument.attributes}')
             TROPIC = topic + "/single/" + format(instrument.attr)
             PAYLOD = format(instrument.str_state)            
-            time.sleep(0.01)
+            
             client.publish(TROPIC,PAYLOD,0,True)
+            time.sleep(0.01)
             
             #data = {}
             #data[format(instrument.attr)] = instrument.str_state
@@ -229,13 +230,17 @@ async def runSeatConnect():
             jsonToSend[format(instrument.attr)] = instrument.str_state
             if OPENHAB_USE:
                 client.publish(topic + "/openhab/" + format(instrument.attr), prepareOpenhab(instrument), 0, True)
+                time.sleep(0.01)
             
          
         json_data = json.dumps(jsonToSend)           
-        client.publish(topic + "/json",json_data,0,True)   
+        client.publish(topic + "/json",json_data,0,True)  
+        time.sleep(1.01) 
         client.publish(topic + "/single/last_update", lastUpdate.strftime("%Y-%m-%dT%H:%M:%S"), 0, True)  
+        time.sleep(1.01) 
         if OPENHAB_USE:
             client.publish(topic + "/openhab/last_update", lastUpdate.strftime("%Y-%m-%dT%H:%M:%S"), 0, True)
+            time.sleep(1.01)
                
        
       
