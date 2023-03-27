@@ -147,6 +147,7 @@ def is_enabled(attr):
 async def runSeatConnect():
     client =  mqtt.Client("P1") #Test
     client.connect(broker_address) #Test
+    lastUpdate = datetime.now()
 
     async with ClientSession(headers={'Connection': 'keep-alive'}) as session:
         print('')
@@ -214,6 +215,7 @@ async def runSeatConnect():
         inst_list = sorted(instruments, key=lambda x: x.attr)
         jsonToSend = {}
         openhabToSend = {}
+        jsonToSend['last_update'] = lastUpdate.strftime("%Y-%m-%dT%H:%M:%S")
         for instrument in inst_list:
             print(f'{instrument.full_name} - {instrument.str_state} - attributes: {instrument.attributes}')
             TROPIC = topic + "/single/" + format(instrument.attr)
@@ -230,7 +232,11 @@ async def runSeatConnect():
             
          
         json_data = json.dumps(jsonToSend)           
-        client.publish(topic + "/json",json_data,0,True)        
+        client.publish(topic + "/json",json_data,0,True)   
+        client.publish(topic + "/single/last_update", lastUpdate.strftime("%Y-%m-%dT%H:%M:%S"), 0, True)  
+        if OPENHAB_USE:
+            client.publish(topic + "/openhab/last_update", lastUpdate.strftime("%Y-%m-%dT%H:%M:%S"), 0, True)
+               
        
       
 async def main():
