@@ -36,6 +36,7 @@ USERNAME = os.environ.get('SEAT_CONNECT_USER')
 PASSWORD = os.environ.get('SEAT_CONNECT_PASS')
 PRINTRESPONSE = True
 INTERVAL = int(os.environ.get('SETTINGS_INTERVAL'))
+OPENHAB_USE = bool(os.environ.get('SETTINGS_OPENHAB_USE'))
 
 COMPONENTS = {
     'sensor': 'sensor',
@@ -120,6 +121,24 @@ RESOURCES = [
         "seat_heating"
 ]
 
+def prepareOpenhab(instrument):
+    if instrument.component == "sensor":
+        if instrument.device_class == "timestamp":
+            timestamp = datetime.strptime(instrument.state, '%Y-%m-%d %H:%M:%S')
+            return timestamp.strftime("%Y-%m-%dT%H:%M:%S")
+        return instrument.state
+    if instrument.component == "binary_sensor":
+        if instrument.device_class == "lock":
+            return "Locked" if instrument.state else "Unlocked"              
+        return instrument.state
+    if instrument.component == "lock":        
+        return "Locked" if instrument.state else "Unlocked"
+    if instrument.component == "device_tracker":
+        return str(instrument.state[0]) + ',' + str(instrument.state[1])
+    if instrument.component == "switch":
+        return instrument.state
+    
+
 def is_enabled(attr):
     """Return true if the user has enabled the resource."""
     #return attr in RESOURCES
@@ -194,6 +213,7 @@ async def runSeatConnect():
         print('########################################')        
         inst_list = sorted(instruments, key=lambda x: x.attr)
         jsonToSend = {}
+        openhabToSend = {}
         for instrument in inst_list:
             print(f'{instrument.full_name} - {instrument.str_state} - attributes: {instrument.attributes}')
             TROPIC = topic + "/single/" + format(instrument.attr)
@@ -205,10 +225,13 @@ async def runSeatConnect():
             #data[format(instrument.attr)] = instrument.str_state
             #jsonToSend.append(data)
             jsonToSend[format(instrument.attr)] = instrument.str_state
+            if OPENHAB_USE:
+                client.publish(topic + "/openhab/" + format(instrument.attr), prepareOpenhab(instrument), 0, True)
             
          
         json_data = json.dumps(jsonToSend)           
-        client.publish(topic + "/json/",json_data,0,True)
+        client.publish(topic + "/json",json_data,0,True)        
+       
       
 async def main():
     """Main method."""
