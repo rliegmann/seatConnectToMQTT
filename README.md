@@ -24,3 +24,7 @@ The following topics are played out:
 ## openHAP
 If the environment variable **SETTINGS_OPENHAB_USE** is set to true, under the topic
 `MQTT_BROKER_TOPIC/openhab/...`, every single data point formatted appropriately for openHAB. Especially the location.
+
+## Address Lookup via openStreatMap
+If the environment variable **SETTINGS_ADDRESS_LOOKUP** is set to true, the GPS position of the vehicle is resolved into an address. This is done via the [openStreetMap.org API](https://www.openstreetmap.org) ( [Licence](https://www.openstreetmap.org/copyright) ). 
+The output format is: `street house number, postcode city`.
