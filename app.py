@@ -7,6 +7,7 @@ import time
 import sys
 import os
 import json
+import random
 
 import paho.mqtt.client as mqtt
 broker_address= os.environ.get('MQTT_BROKER_SERVER')
@@ -14,7 +15,12 @@ topic = os.environ.get('MQTT_BROKER_TOPIC')
 from aiohttp import ClientSession
 from datetime import datetime
 
-import schedule
+from OSMPythonTools.nominatim import Nominatim
+
+#import schedule
+
+logging.getLogger('OSMPythonTools').setLevel(logging.ERROR)
+nominatim = Nominatim()
 
 
 #import debugpy;
@@ -30,13 +36,14 @@ except ModuleNotFoundError as e:
     print(f"Unable to import library: {e}")
     sys.exit(1)
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 USERNAME = os.environ.get('SEAT_CONNECT_USER')
 PASSWORD = os.environ.get('SEAT_CONNECT_PASS')
 PRINTRESPONSE = True
 INTERVAL = int(os.environ.get('SETTINGS_INTERVAL'))
 OPENHAB_USE = bool(os.environ.get('SETTINGS_OPENHAB_USE'))
+SETTINGS_ADDRESS_LOOKUP = bool(os.environ.get('SETTINGS_ADDRESS_LOOKUP'))
 
 COMPONENTS = {
     'sensor': 'sensor',
@@ -144,6 +151,22 @@ def is_enabled(attr):
     #return attr in RESOURCES
     return True
 
+def positionToAddress(lat, lon):
+    """Returns die Address for GPS. Use openStreetMap for this""" 
+    # = Nominatim()
+    #  48.10146°N 11.520163
+    #lat = random.randint(48000, 49000)
+    #lon = random.randint(11000, 12000)
+    try:
+        result = nominatim.query(lat, lon, reverse=True, zoom=18)
+        data = result.address()
+        return data['road'] + " " + data['house_number'] + ", " + data['postcode'] + " " + data['city']
+    except: 
+        print('Error: OSM reqest')
+        return ""
+    
+    
+
 async def runSeatConnect():
     client =  mqtt.Client("P1") #Test
     client.connect(broker_address) #Test
@@ -231,7 +254,19 @@ async def runSeatConnect():
             if OPENHAB_USE:
                 client.publish(topic + "/openhab/" + format(instrument.attr), prepareOpenhab(instrument), 0, True)
                 time.sleep(0.01)
-            
+                
+        #rawPositionsData = [x for x in inst_list if x.attr == 'position']
+        #if rawPositionsData:
+        for rawPositionsData in [x for x in inst_list if x.attr == 'position']:
+            print("exist")
+            if SETTINGS_ADDRESS_LOOKUP:              
+                parkingAddress = positionToAddress(rawPositionsData.state[0], rawPositionsData.state[1])
+                jsonToSend['parking_address'] = parkingAddress
+                client.publish(topic + "/single/parking_address", parkingAddress, 0, True)
+                time.sleep(0.01)
+                client.publish(topic + "/openhab/parking_address", parkingAddress, 0, True)
+                time.sleep(0.01)
+                 
          
         json_data = json.dumps(jsonToSend)           
         client.publish(topic + "/json",json_data,0,True)  
@@ -245,7 +280,7 @@ async def runSeatConnect():
        
       
 async def main():
-    """Main method."""
+    """Main method."""    
     while True:
         await runSeatConnect()
         await asyncio.sleep(INTERVAL)
