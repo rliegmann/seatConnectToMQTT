@@ -151,6 +151,9 @@ def is_enabled(attr):
     #return attr in RESOURCES
     return True
 
+def isString(value):
+    return value if isinstance(value, str) else ""
+
 def positionToAddress(lat, lon):
     """Returns die Address for GPS. Use openStreetMap for this""" 
     # = Nominatim()
@@ -160,9 +163,24 @@ def positionToAddress(lat, lon):
     try:
         result = nominatim.query(lat, lon, reverse=True, zoom=18)
         data = result.address()
-        return data['road'] + " " + data['house_number'] + ", " + data['postcode'] + " " + data['city']
-    except: 
+        
+        
+        if 'house_number' in data:
+            house_number = isString(data['house_number'])
+        else:
+            house_number = ""
+            
+        if 'city' in data:
+            city = isString(data['city'])
+        elif 'village' in data:
+            city = isString(data['village'])           
+            
+            
+            
+        return isString(data['road']) + " " + house_number + ", " + isString(data['postcode']) + " " + city
+    except Exception as ex: 
         print('Error: OSM reqest')
+        print(ex)
         return ""
     
     
@@ -259,13 +277,14 @@ async def runSeatConnect():
         #if rawPositionsData:
         for rawPositionsData in [x for x in inst_list if x.attr == 'position']:
             print("exist")
-            if SETTINGS_ADDRESS_LOOKUP:              
-                parkingAddress = positionToAddress(rawPositionsData.state[0], rawPositionsData.state[1])
-                jsonToSend['parking_address'] = parkingAddress
-                client.publish(topic + "/single/parking_address", parkingAddress, 0, True)
-                time.sleep(0.01)
-                client.publish(topic + "/openhab/parking_address", parkingAddress, 0, True)
-                time.sleep(0.01)
+            if SETTINGS_ADDRESS_LOOKUP:   
+                if rawPositionsData.state[0] == 'None' or rawPositionsData.state[1]  == 'None':    # Vehicle is moving
+                    parkingAddress = positionToAddress(rawPositionsData.state[0], rawPositionsData.state[1])
+                    jsonToSend['parking_address'] = parkingAddress
+                    client.publish(topic + "/single/parking_address", parkingAddress, 0, True)
+                    time.sleep(0.01)
+                    client.publish(topic + "/openhab/parking_address", parkingAddress, 0, True)
+                    time.sleep(0.01)
                  
          
         json_data = json.dumps(jsonToSend)           
