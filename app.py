@@ -278,7 +278,7 @@ async def runSeatConnect():
         for rawPositionsData in [x for x in inst_list if x.attr == 'position']:
             print("exist")
             if SETTINGS_ADDRESS_LOOKUP:   
-                if rawPositionsData.state[0] == 'None' or rawPositionsData.state[1]  == 'None':    # Vehicle is moving
+                if rawPositionsData.state[0] != 'None' or rawPositionsData.state[1]  != 'None':    # Vehicle is moving
                     parkingAddress = positionToAddress(rawPositionsData.state[0], rawPositionsData.state[1])
                     jsonToSend['parking_address'] = parkingAddress
                     client.publish(topic + "/single/parking_address", parkingAddress, 0, True)
